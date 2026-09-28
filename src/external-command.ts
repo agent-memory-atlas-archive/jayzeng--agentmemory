@@ -6,8 +6,13 @@ import * as path from "node:path";
 const CORE_COMMANDS = new Set([
 	"help",
 	"version",
+	"setup",
+	"uninstall",
 	"install-skills",
 	"uninstall-skills",
+	"install-hooks",
+	"uninstall-hooks",
+	"hook",
 	"context",
 	"write",
 	"read",
@@ -18,6 +23,7 @@ const CORE_COMMANDS = new Set([
 	"sync",
 	"init",
 	"status",
+	"serve",
 ]);
 
 const COMMAND_NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;

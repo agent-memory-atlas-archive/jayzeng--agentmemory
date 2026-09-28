@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.7.0
+
+### Added
+
+- `agent-memory setup` / `agent-memory uninstall`: one-shot install and reverse
+  covering the memory dir, qmd, bundled skills, and hooks for every detected
+  agent in one command.
+- `agent-memory install-hooks` / `agent-memory uninstall-hooks`: install or
+  remove SessionStart/UserPromptSubmit/Stop hooks for Claude Code, Codex,
+  Cursor, opencode, and Qoder, backed by a new `src/hooks.ts`. SessionStart
+  injects memory context at session start; the optional per-turn
+  UserPromptSubmit hook (Claude Code and Codex only) additionally injects
+  context on every prompt; Stop periodically nudges (and, for Codex/Qoder,
+  blocks) an agent to capture durable facts before ending a turn, using
+  transcript evidence to avoid nagging when nothing new happened.
+- `agent-memory hook <session-start|user-prompt-submit|stop|cursor-event>`:
+  the internal runtime handler invoked by an installed hook. Cursor uses its
+  documented event hooks directly instead of transcript parsing
+  (`src/cursor-capture.ts`); Codex and Claude Code use transcript-evidence
+  parsers (`src/codex-capture-check.ts`, `src/capture-check.ts`) to detect
+  explicit remember requests and completed work without re-nagging on
+  unchanged sessions.
+- A hook mode toggle (`stable` vs `per-turn`), configurable via
+  `AGENT_MEMORY_HOOK_MODE` or `<memoryDir>/hook-config.json`
+  (`readHookMode`/`writeHookMode` in `src/core.ts`). `stable` installs only
+  SessionStart + Stop; `per-turn` additionally installs UserPromptSubmit for
+  agents that support it.
+- `agent-memory serve` is now a recognized core command name (previously only
+  reachable via `serve --mcp`).
+- New tests: `test/codex-capture.test.ts`, `test/codex-stop-install.test.ts`,
+  `test/cursor-stop-install.test.ts`, `test/qoder-stop-install.test.ts`, wired
+  into `npm run test:cli`.
+
 ## 0.6.1
 
 ### Fixed

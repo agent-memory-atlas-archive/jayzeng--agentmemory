@@ -931,6 +931,10 @@ describe("install scripts", () => {
 // ---------------------------------------------------------------------------
 
 describe("npm package portability", () => {
+	// npm pack runs the real prepack hook (public-boundary check + full tsc
+	// build:lib), then this test does a real `npm install --global` from the
+	// packed tarball — comfortably over the 5s default timeout on a loaded
+	// machine or a larger source tree.
 	test("ships and runs a portable Node.js CLI instead of a native binary", () => {
 		const repoRoot = path.join(__dirname, "..");
 		const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf-8")) as {
@@ -984,20 +988,34 @@ describe("npm package portability", () => {
 			const mcpHome = fs.mkdtempSync(path.join(os.tmpdir(), "agent-memory-npm-package-mcp-"));
 			try {
 				// Bun.spawnSync's `input` option unreliably delivers stdin to the
-				// child here; node:child_process's spawnSync does not.
+				// child here; node:child_process's spawnSync does not. The server
+				// requires the real JSON-RPC handshake (initialize +
+				// notifications/initialized) before any other method, same as a
+				// real MCP client — see test/mcp-server.test.ts's stdio subprocess test.
+				const requests = [
+					{ jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+					{ jsonrpc: "2.0", method: "notifications/initialized" },
+					{ jsonrpc: "2.0", id: 2, method: "tools/list" },
+				]
+					.map((request) => JSON.stringify(request))
+					.join("\n");
 				const mcpResult = nodeSpawnSync(executable, ["serve", "--mcp"], {
-					input: '{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n',
+					input: `${requests}\n`,
 					encoding: "utf8",
 					env: { ...process.env, AGENT_MEMORY_DIR: mcpHome },
 				});
 				expect(mcpResult.status).toBe(0);
-				const response = JSON.parse(mcpResult.stdout.trim().split("\n")[0]);
-				expect(response.result.tools.map((tool: { name: string }) => tool.name)).toContain("memory_context");
+				const responses = mcpResult.stdout
+					.trim()
+					.split("\n")
+					.map((line) => JSON.parse(line));
+				const listResponse = responses.find((response) => response.id === 2);
+				expect(listResponse.result.tools.map((tool: { name: string }) => tool.name)).toContain("memory_context");
 			} finally {
 				fs.rmSync(mcpHome, { recursive: true, force: true });
 			}
 		} finally {
 			fs.rmSync(tempDir, { recursive: true, force: true });
 		}
-	});
+	}, 30_000);
 });

@@ -62,6 +62,47 @@ export function getTopicsDir(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Hook mode config (per-turn vs stable)
+// ---------------------------------------------------------------------------
+
+export type HookMode = "stable" | "per-turn";
+
+const HOOK_CONFIG_FILENAME = "hook-config.json";
+const HOOK_MODE_DEFAULT: HookMode = "per-turn";
+
+function hookConfigPath(): string {
+	return path.join(MEMORY_DIR, HOOK_CONFIG_FILENAME);
+}
+
+/**
+ * Resolve the active hook mode.
+ * Precedence: `AGENT_MEMORY_HOOK_MODE` env var → `<memoryDir>/hook-config.json`
+ * → default `per-turn`. Invalid values fall through to the next source.
+ */
+export function readHookMode(): HookMode {
+	const env = process.env.AGENT_MEMORY_HOOK_MODE;
+	if (env === "stable" || env === "per-turn") return env;
+	try {
+		const raw = fs.readFileSync(hookConfigPath(), "utf-8");
+		const parsed = JSON.parse(raw) as { mode?: unknown };
+		if (parsed.mode === "stable" || parsed.mode === "per-turn") return parsed.mode;
+	} catch {}
+	return HOOK_MODE_DEFAULT;
+}
+
+/**
+ * Atomically persist the chosen hook mode. Called by `install-hooks` after a
+ * successful install pass so `status` and later invocations can report it.
+ */
+export function writeHookMode(mode: HookMode): void {
+	fs.mkdirSync(MEMORY_DIR, { recursive: true });
+	const target = hookConfigPath();
+	const temporary = `${target}.${process.pid}.tmp`;
+	fs.writeFileSync(temporary, `${JSON.stringify({ mode }, null, 2)}\n`, { mode: 0o600 });
+	fs.renameSync(temporary, target);
+}
+
+// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
 

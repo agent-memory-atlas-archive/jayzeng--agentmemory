@@ -33,6 +33,16 @@ const allowedSourceFiles = new Set([
   // memory_search/memory_read/memory_write/memory_scratchpad mirror the
   // context/search/read/write/scratchpad CLI commands one-to-one).
   "src/mcp-server.ts",
+  // SessionStart/UserPromptSubmit/Stop hook installers for detected agents
+  // (Claude Code, Codex, Cursor, opencode, Qoder, and pi via the pi-memory
+  // extension) plus their transcript-evidence helpers, backing the public
+  // `install-hooks` / `uninstall-hooks` / `setup` / `uninstall` CLI commands.
+  // Zero external deps beyond node:fs/path/os/child_process/crypto; local
+  // config-file edits only, no online account or payment concepts.
+  "src/hooks.ts",
+  "src/capture-check.ts",
+  "src/codex-capture-check.ts",
+  "src/cursor-capture.ts",
 ]);
 
 const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean);

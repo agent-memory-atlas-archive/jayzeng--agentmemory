@@ -7,8 +7,13 @@ describe("external command handoff", () => {
 		for (const command of [
 			"help",
 			"version",
+			"setup",
+			"uninstall",
 			"install-skills",
 			"uninstall-skills",
+			"install-hooks",
+			"uninstall-hooks",
+			"hook",
 			"context",
 			"write",
 			"read",
@@ -19,6 +24,7 @@ describe("external command handoff", () => {
 			"sync",
 			"init",
 			"status",
+			"serve",
 		]) {
 			expect(shouldTryExternalCommand(command)).toBe(false);
 		}
